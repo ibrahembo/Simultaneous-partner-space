@@ -494,6 +494,13 @@
 
     const LOCAL_PREFIX = "relationship_room_en_v2_";
     const ROLE_PREFIX = "relationship_role_en_v2_";
+    const ARTIFACT_URL = "https://claude.ai/artifact/CAByjMYP5Qkhd9jVqUUPFL";
+
+    function syncProblem() {
+      if (!window.claude || !window.claude.use) return "This is a saved copy of the page, so sync is off. Open the claude.ai link instead.";
+      if (window.top === window.self) return "The page was opened outside the claude.ai viewer, so sync is off. Open the claude.ai link while signed in.";
+      return "Sync is off. Sign in to claude.ai and ask the owner to give you Contributor access.";
+    }
 
     const appState = {
       roomId: null, role: "p1", roomData: null,
@@ -546,7 +553,7 @@
       box.textContent = msg;
       box.classList.add("show");
       clearTimeout(toastTimer);
-      toastTimer = setTimeout(() => box.classList.remove("show"), 2800);
+      toastTimer = setTimeout(() => box.classList.remove("show"), Math.max(2800, msg.length * 70));
     }
 
     function setConn(text, live) {
@@ -703,7 +710,7 @@
       if (appState.roomId === code) return;
       appState.db = await dbReady;
       if (!appState.db && !readLocalRoom(code)) {
-        showToast("Room not found on this device. Cross-device sync is unavailable here.");
+        showToast(syncProblem());
         return;
       }
       const role = lsGet(ROLE_PREFIX + code) === "p1" ? "p1" : "p2";
@@ -864,8 +871,8 @@
     }
 
     function shareUrl() {
-      let base = location.href.split("#")[0].split("?")[0];
-      return base + "#" + appState.roomId;
+      // The viewer frame's own URL is not shareable, so always use the claude.ai artifact link.
+      return ARTIFACT_URL + "#" + appState.roomId;
     }
 
     function refreshUI() {
@@ -1234,7 +1241,8 @@
     document.addEventListener("DOMContentLoaded", async () => {
       buildStaticExerciseBlocks();
       appState.db = await dbReady;
-      setConn(appState.db ? "Live Sync Ready" : "Local Tab Sync", Boolean(appState.db));
+      setConn(appState.db ? "Live Sync Ready" : "Sync Unavailable", Boolean(appState.db));
+      if (!appState.db) showToast(syncProblem());
       const code = codeFromLocation();
       if (code) joinByCode(code);
     });
